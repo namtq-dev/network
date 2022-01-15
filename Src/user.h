@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 
 typedef struct User{
     char username[30];
@@ -215,13 +216,32 @@ void swap(char *A, char *B, int *winA, int *winB, int *loseA, int *loseB, int *s
 }
 
 char *sendChallenge(connfd *user, char *buff, int maxfd){
-    char A[30];
-    char B[30];
+    char nameA[30];
+    char nameB[30];
     char *log = calloc(5000, sizeof(char));
-    sscanf(buff, "%s %s", A, B);
+    int sendBytes, rcvBytes;
+    sscanf(buff, "%s %s", nameA, nameB);
     for(int i = 0; i < maxfd; i++){
-        printf("%d--- %s", i, user[i].username);
-        
+        printf("%d--- %s\n", i, user[i].username);
+        if(strcmp(user[i].username, nameB) == 0){
+            sprintf(buff, "CHAL %s %s", nameA, nameB);
+            sendBytes = send(user[i].clientfd, buff, strlen(buff), 0);
+            if(sendBytes < 0){
+                perror("Send Challenge Error:");
+                strcpy(log, "RESP\nfail\n"); 
+                break;
+            }
+            rcvBytes = recv(user[i].clientfd, buff, 1000, 0);
+            if(rcvBytes < 0){
+                perror("Receive Challenge Error:");
+                strcpy(log, "RESP\nfail\n"); 
+                break;
+            }
+            strcpy(log, "RESP\nsuccess\n");
+            break;
+        }
     }
+
+    return log;
 }
 

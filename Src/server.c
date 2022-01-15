@@ -209,7 +209,7 @@ int clientHandler(connfd *user, char *buff, int i, client list, int *size, int m
     if (strcmp(mess.msg_type, "CHAL") == 0)
     {
         printf("6\n");
-        
+        strcpy(respond, sendChallenge(user, mess.msg_payload, maxfd));
     }
 
     sendBytes = send((*(user + i)).clientfd, respond, strlen(respond)+1, 0);

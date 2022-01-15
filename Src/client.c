@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <signal.h>
+#include <pthread.h>
 #include "message.h"
 
 #define SERVER_ADDR argv[1]
@@ -19,7 +20,19 @@ int checkIP();
 int checkPort();
 int checkRequest();
 void respond();
+void getChallenge();
 void catch_ctrl_c_and_exit();
+int respondChallenge();
+
+pthread_mutex_t a_mutex; 
+void* do_thread1 (void* data);
+void* do_thread2 (void* data);
+void* do_thread3 (void* data);
+
+int client;
+char request[1000];
+char accp[1000];
+
 
 int main(int argc, char const *argv[])
 {
@@ -41,7 +54,6 @@ int main(int argc, char const *argv[])
     }
 
     // Initiate client socket
-    int client;
     client = socket(AF_INET, SOCK_STREAM, 0);
     if (client < 0)
     {
@@ -65,46 +77,35 @@ int main(int argc, char const *argv[])
         exit(3);
     }
 
-    char request[1000], accept[1000];
-    char buff[BUFF_SIZE + 1];
-    int sendBytes, rcvBytes;
-    int n;
-    message mess;
-    int mess_len;
+    int res;
+    pthread_t p_thread1;
+    pthread_t p_thread2;
     
+    /*Khởi tạo mutex*/
+    res = pthread_mutex_init(&a_mutex, NULL);
+
+    if (res != 0)
+    {
+        perror("Mutex create error");
+        exit(EXIT_FAILURE);
+    }
+    /*Tạo tuyến thứ nhất*/
+    res = pthread_create(&p_thread1, NULL, do_thread1, NULL);
+    if (res != 0)
+    {
+        perror("Thread create error");
+        exit(EXIT_FAILURE);
+    }
+    /*Tạo tuyến thứ hai*/
+    res = pthread_create(&p_thread2, NULL, do_thread2, NULL);
+    if (res != 0)
+    {
+        perror("Thread create error");
+        exit(EXIT_FAILURE);
+    }
+
     while(flag){
-        n = checkRequest(buff);
-        if(n == 1){
-            sendBytes = send(client, buff, strlen(buff), 0);
-            if (sendBytes < 0)
-            {
-                perror("Error send: ");
-                exit(4);                
-            }
-            rcvBytes = recv(client, buff, BUFF_SIZE, 0);
-            if (rcvBytes < 0)
-            {
-                perror("Error recv: ");
-                return 0;            
-            } else if (rcvBytes == 0){
-                perror("The server terminated prematurely\n");
-                exit(5);
-            }
-            buff[rcvBytes] = '\0';
-            printf("[Message from server]: \n%s\n", buff); 
-            strncpy(mess.msg_type, buff, 4);
-            mess.msg_type[4] = '\0';
-            printf("Message type: %s\n", mess.msg_type);
-
-            mess_len = strlen(buff) - 5;
-            strncpy(mess.msg_payload, buff+5, mess_len);
-            mess.msg_payload[mess_len] = '\0';
-            printf("Message payload: %s\n", mess.msg_payload);
-
-            if(strcmp(mess.msg_type, "RESP") == 0){
-                respond(mess.msg_payload);
-            } 
-        }     
+        sleep(1);
     }
 
     if(!flag) {
@@ -113,6 +114,10 @@ int main(int argc, char const *argv[])
 
         FILE *fp;
         fp = fopen("../python/boundary/request.txt", "w");
+        fprintf(fp, "%d", 0);
+        fclose(fp);
+
+        fp = fopen("../python/boundary/challenge.txt", "w");
         fprintf(fp, "%d", 0);
         fclose(fp);
     }
@@ -186,9 +191,11 @@ int checkRequest(char *buff)
     }
     fclose(fp);
 
-    fp = fopen("../python/boundary/request.txt", "w");
-    fprintf(fp, "%d", 0);
-    fclose(fp);
+    if(result == 1){
+        fp = fopen("../python/boundary/request.txt", "w");
+        fprintf(fp, "%d", 0);
+        fclose(fp);
+    }
     return result;
 }
 
@@ -204,6 +211,114 @@ void respond(char *buff){
     fclose(fp);
 }
 
+void getChallenge(char *buff){
+    FILE *fp;
+    fp = fopen("../python/boundary/challenge.txt", "w");
+    if (fp == NULL)
+    {
+        printf("Input - Empty file!");
+        fclose(fp);
+    }
+    fprintf(fp, "%d\n%s", 1, buff);
+    fclose(fp);
+}
+
+int respondChallenge(char *buff){
+    int result;
+    FILE *fp;
+    fp = fopen("../python/boundary/accept.txt", "r");
+    if (fp == NULL)
+    {
+        printf("Input - Empty file!");
+        result = 0;
+    }
+    fgets(buff, 1000, fp);
+    if(strcmp(buff, "0") == 0){
+        result = 0; //no answer
+    } else {
+        fgets(buff, 1000, fp);
+        printf("%s\n", buff);
+        result = 1; //have answer
+    }
+    fclose(fp);
+
+    if(result == 1){
+        fp = fopen("../python/boundary/accept.txt", "w");
+        fprintf(fp, "%d", 0);
+        fclose(fp);
+    }
+    return result;
+}
+
 void catch_ctrl_c_and_exit(int sig) {
     flag = 0;
+}
+
+void* do_thread1 (void* data){
+    char buff[BUFF_SIZE + 1];
+    int sendBytes, rcvBytes;
+    int n;
+    while(flag){
+        n = checkRequest(buff);
+        if(n == 1){
+            pthread_mutex_lock(&a_mutex);
+            sendBytes = send(client, buff, strlen(buff), 0);
+            if (sendBytes < 0)
+            {
+                perror("Error send: ");
+                exit(4);                
+            }
+            pthread_mutex_unlock(&a_mutex);
+        } 
+        if(respondChallenge(buff) == 1){
+            pthread_mutex_lock(&a_mutex);
+            sendBytes = send(client, buff, strlen(buff), 0);
+            if (sendBytes < 0)
+            {
+                perror("Error send: ");
+                exit(4);                
+            }
+            pthread_mutex_unlock(&a_mutex);
+        }
+        usleep(100000);
+    }
+}
+
+void* do_thread2 (void* data){
+    char buff[BUFF_SIZE + 1];
+    int sendBytes, rcvBytes;
+    message mess;
+    int mess_len;
+    while(flag){
+        rcvBytes = recv(client, buff, BUFF_SIZE, 0);
+        printf("%d\n", rcvBytes);
+        if (rcvBytes < 0)
+        {
+            perror("Error recv: ");
+            return 0;            
+        } else if (rcvBytes == 0){
+            perror("The server terminated prematurely\n");
+            exit(5);
+        }
+        buff[rcvBytes] = '\0';            
+        printf("[Message from server]: \n%s\n", buff); 
+        strncpy(mess.msg_type, buff, 4);
+        mess.msg_type[4] = '\0';
+        printf("Message type: %s\n", mess.msg_type);
+
+        mess_len = strlen(buff) - 5;
+        strncpy(mess.msg_payload, buff+5, mess_len);
+        mess.msg_payload[mess_len] = '\0';
+        printf("Message payload: %s\n", mess.msg_payload);
+
+        if(strcmp(mess.msg_type, "RESP") == 0){
+            respond(mess.msg_payload);
+        } else {
+            getChallenge(mess.msg_payload);
+        }  
+    }
+}
+
+void* do_thread3 (void* data){
+
 }
