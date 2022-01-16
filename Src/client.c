@@ -39,8 +39,8 @@ void *do_thread3(void *data);
 void err_exit(char *buff);
 
 int client;
-char request[1000];
-char accp[1000];
+struct sockaddr_in serverAddr;
+int control = 0;
 
 int main(int argc, char const *argv[])
 {
@@ -71,7 +71,6 @@ int main(int argc, char const *argv[])
     printf("Client socket constructed!\n");
 
     // Define the address of the server
-    struct sockaddr_in serverAddr;
     bzero(&serverAddr, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     inet_aton(SERVER_ADDR, &serverAddr.sin_addr);
@@ -88,6 +87,7 @@ int main(int argc, char const *argv[])
     int res;
     pthread_t p_thread1;
     pthread_t p_thread2;
+    pthread_t p_thread3;
 
     /*Khởi tạo mutex*/
     res = pthread_mutex_init(&a_mutex, NULL);
@@ -112,6 +112,13 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
+    res = pthread_create(&p_thread3, NULL, do_thread3, NULL);
+    if (res != 0)
+    {
+        perror("Thread create error");
+        exit(EXIT_FAILURE);
+    }
+
     while (flag)
     {
         sleep(1);
@@ -120,7 +127,7 @@ int main(int argc, char const *argv[])
     if (!flag)
     {
         close(client);
-        printf("\nClient closed\n");
+        printf("\nClient TCP closed\n");
 
         FILE *fp;
         fp = fopen("../python/boundary/request.txt", "w");
@@ -292,6 +299,10 @@ void *do_thread1(void *data)
     int n;
     while (flag)
     {
+        if (control != 0)
+        {
+            sleep(1);
+        }
         n = checkRequest(buff);
         if (n == 1)
         {
@@ -327,6 +338,10 @@ void *do_thread2(void *data)
     int mess_len;
     while (flag)
     {
+        if (control != 0)
+        {
+            sleep(1);
+        }
         rcvBytes = recv(client, buff, BUFF_SIZE, 0);
         //printf("%d\n", rcvBytes);
         if (rcvBytes < 0)
@@ -451,8 +466,14 @@ void *do_thread3(void *data)
     char PEER_PORT[10];
     while (flag)
     {
+        if (control == 0)
+        {
+            usleep(500000);
+        }
         if (checkPeer(PEER_ADDR, PEER_PORT) == 1)
         {
+            control = 1;
+
             inet_aton(PEER_ADDR, &peerAddr.sin_addr);
             u_short peerPort = (ushort)atoi(PEER_PORT);
             peerAddr.sin_port = htons(peerPort);
@@ -467,12 +488,14 @@ void *do_thread3(void *data)
             int sendBytes, rcvBytes;
             socklen_t len = sizeof(peerAddr);
 
-            int x1, y1, x2, y2, n1, n2;
+            int x1 = 3000, y1 = 3000, x2 = 3000, y2 = 3000, n1 = 3000, n2 = 3000;
 
+            sprintf(addr, "%d      %d      %d      %d      %d      %d      abc", x1, y1, x2, y2, n1, n2);
             while (1)
             {
                 sscanf(addr, "%d%d%d%d%d%d", &x1, &y1, &x2, &y2, &n1, &n2);
                 sprintf(buff, "%d %d %d", x1, y1, n1);
+                if(x1 == 7000) break;
                 sendBytes = sendto(clientUDP, buff, strlen(buff), 0, (struct sockaddr *)&peerAddr, len);
                 buff[0] = '\0';
 
@@ -483,8 +506,9 @@ void *do_thread3(void *data)
                 buff[rcvBytes] = '\0';
                 usleep(10000);
             }
+            
+            control = 0;
         }
-        usleep(100000);
     }
 
     close(clientUDP);

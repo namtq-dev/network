@@ -14,7 +14,6 @@ class Communicate:
         f = open('boundary/respond.txt','r')
         values = []
         data = f.readlines()
-        print(data)
         if data[0] == '0\n':
             pass
         else:

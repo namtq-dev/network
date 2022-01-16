@@ -235,7 +235,6 @@ char *sendChallenge(connfd *user, char *buff, int maxfd){
             }
             memset(buff, '\0', 1000*sizeof(char));
             rcvBytes = recv(user[i].clientfd, buff, 1000, 0);
-            printf("Recv: %s", buff);
             if(rcvBytes < 0){
                 perror("Receive Challenge Error:");
                 strcpy(log, "RESP\nfail\n"); 

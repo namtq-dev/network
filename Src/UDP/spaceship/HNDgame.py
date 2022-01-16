@@ -1,8 +1,9 @@
+import pathlib
 import pygame 
-import sys
-sys.path.insert(0, '../')
+import time
 from spaceship.tcp import CPythonConnection
 import math
+path = pathlib.Path(__file__).parent.resolve()
 
 class BlueSpaceship:
     def __init__(self, screen):
@@ -14,8 +15,8 @@ class BlueSpaceship:
         self.xb = 0
         self.yb = 0
         self.readly = True
-        self.spaceship = pygame.image.load('./icon/rocket.png')
-        self.bullet = pygame.image.load('./icon/bullet.png')
+        self.spaceship = pygame.image.load(f'{path}/icon/rocket.png')
+        self.bullet = pygame.image.load(f'{path}/icon/bullet.png')
         self.speed = 4
         self.bspeed = 6
         self.xchange = 0
@@ -76,8 +77,8 @@ class RedSpaceship:
         self.xb = 0
         self.yb = 0
         self.readly = True
-        self.spaceship = pygame.image.load('./icon/rocket1.png')
-        self.bullet = pygame.image.load('./icon/bullet1.png')
+        self.spaceship = pygame.image.load(f'{path}/icon/rocket1.png')
+        self.bullet = pygame.image.load(f'{path}/icon/bullet1.png')
         self.speed = 4
         self.bspeed = 6
     
@@ -95,8 +96,8 @@ class RedSpaceship:
         return self.getPosition(self.x, self.y)
 
     def display_blood(self, x,y,blood):
-        pygame.draw.rect(screen, (255,0,0), pygame.Rect(x,y,100,10))
-        pygame.draw.rect(screen, (0,255,0), pygame.Rect(x,y,blood,10))
+        pygame.draw.rect(self.screen, (255,0,0), pygame.Rect(x,y,100,10))
+        pygame.draw.rect(self.screen, (0,255,0), pygame.Rect(x,y,blood,10))
         # pygame.display.flip()
 
     def getPosition(self, x, y):
@@ -112,7 +113,7 @@ class RedSpaceship:
         self.y = y
         if self.nBullet > nBullet:
             self.fire()
-            self.nBullet = nBullet
+        self.nBullet = nBullet
         self.screen.blit(self.spaceship, self.getPosition(self.x, self.y))
         xb,yb = self.getPosition(self.x, self.y)
         self.display_blood(xb-20, yb-10, self.blood)
@@ -127,7 +128,9 @@ class RedSpaceship:
 class HNDgame:
     def __init__(self, screen):
         self.screen = screen
-        self.background = pygame.image.load('./icon/bg.jpg')
+        self.background = pygame.image.load(f'{path}/icon/bg.jpg')
+        self.winbackground = pygame.image.load(f'{path}/icon/win.jpg')
+        self.losebackground = pygame.image.load(f'{path}/icon/lose.jpg')
         self.share = CPythonConnection()
 
     def distance(self, x, y):
@@ -136,16 +139,20 @@ class HNDgame:
 
     def run(self):
         clocks = pygame.time.Clock()
-
         running = True
         blueGamer = BlueSpaceship(self.screen)
         redGamer = RedSpaceship(self.screen) 
+        self.loadbackground = pygame.image.load(f'{path}/icon/loading.jpg')
+        self.screen.fill((0, 0, 0))
+        self.screen.blit(self.loadbackground, (0, 0))
+        pygame.display.update()
+        time.sleep(3)
         while running:
             self.screen.fill((0, 0, 0))
             self.screen.blit(self.background, (0, 0))
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+                # if event.type == pygame.QUIT:
+                    # running = False
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         blueGamer.xchange = -blueGamer.speed
@@ -168,21 +175,35 @@ class HNDgame:
             print(f'{xr} , {yr} ,{nr}, {redGamer.nBullet}')   
             redGamer.run(xr , yr ,nr)
             blueGamer.run()
-            self.share.writeData(blueGamer.x, blueGamer.y, blueGamer.nBullet)
 
             if blueGamer.readly==False:
                if self.distance(blueGamer.getPositionBullet(), redGamer.getPositionSpace()):
                    blueGamer.readly = True
                    redGamer.blood -= 20
+                   if redGamer.blood < 5:
+                       running = False
+                       blueGamer.x = blueGamer.y = blueGamer.nBullet = 5000  
+                       self.screen.fill((0, 0, 0))
+                       self.screen.blit(self.winbackground, (0, 0))
+                       pygame.display.update()
+                       time.sleep(3)
             if redGamer.readly==False:
                if self.distance(redGamer.getPositionBullet(), blueGamer.getPosition()):
                    redGamer.readly = True
-                   blueGamer.blood -= 20            
+                   blueGamer.blood -= 20 
+                   if blueGamer.blood < 5:
+                       running = False 
+                       blueGamer.x = blueGamer.y = blueGamer.nBullet = 5000  
+                       self.screen.fill((0, 0, 0))
+                       self.screen.blit(self.losebackground, (0, 0)) 
+                       pygame.display.update()   
+                       time.sleep(3)  
+            self.share.writeData(blueGamer.x, blueGamer.y, blueGamer.nBullet)        
             pygame.display.update()
             clocks.tick(75)
 
 
-pygame.init()
-screen = pygame.display.set_mode((800, 600))
-game = HNDgame(screen)
-game.run()
+# pygame.init()
+# screen = pygame.display.set_mode((800, 600))
+# game = HNDgame(screen)
+# game.run()

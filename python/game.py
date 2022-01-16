@@ -3,6 +3,10 @@ import pygame_menu
 import pygame_gui
 import math
 import time
+import sys
+sys.path.append('../Src/UDP')
+sys.path.append("../Src/UDP/spaceship")
+from HNDgame import HNDgame
 
 from communicate import Communicate
 from authen import AuthenForm
@@ -63,13 +67,7 @@ class Arena:
                     setting[1] = setting[1].replace("\n", "")
                     peer = list_user[index-2].replace("\n", "")
                     self.communication.request(f'CHAL {self.account} {peer} {setting[0]} {setting[1]}')
-                for i in range(30):
-                    time.sleep(0.1)
-                    status,values=self.communication.checkRespond()
-                    if(status==True):
-                        print(values)  
-                        break                  
-                #  do something
+                
 
 
 
@@ -102,9 +100,24 @@ class Arena:
                     setting[1] = setting[1].replace("\n", "")
                     self.communication.resChallenge(f'RESP\naccept {setting[0]} {setting[1]}')
                     # do some thing
+                    game = HNDgame(self.screen)
+                    game.run()
                 else:
                     self.communication.resChallenge('RESP\nreject x x')
-        
+            
+            status,values=self.communication.checkRespond()
+            if(status==True):
+                info = values[0].split()
+                answer = info[0]
+                addr = info[1]
+                port = info[2]
+                if answer == "accept":
+                    f = open("boundary/peer.txt", "w")
+                    f.write(f"1\n{addr} {port}")
+                    f.close()
+                    game = HNDgame(self.screen)
+                    game.run()
+
             if False:
                 pass
             else:

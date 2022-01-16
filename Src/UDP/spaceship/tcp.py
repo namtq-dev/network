@@ -1,8 +1,10 @@
 import sysv_ipc as ipc
+import pathlib
+path1 = pathlib.Path(__file__).parent.resolve()
 
 class CPythonConnection:
     def __init__(self):
-        f = open('../../../setting.txt')
+        f = open(f'{path1}/../../../setting.txt')
         path = f.readlines()[2].replace("\n", "")
         self.key = ipc.ftok(path, 2332)
         self.shm = ipc.SharedMemory(self.key, 0, 0)
