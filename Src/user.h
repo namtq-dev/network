@@ -218,26 +218,30 @@ void swap(char *A, char *B, int *winA, int *winB, int *loseA, int *loseB, int *s
 char *sendChallenge(connfd *user, char *buff, int maxfd){
     char nameA[30];
     char nameB[30];
+    char addr[30];
+    char port[30];
     char *log = calloc(5000, sizeof(char));
     int sendBytes, rcvBytes;
-    sscanf(buff, "%s %s", nameA, nameB);
+    sscanf(buff, "%s %s %s %s", nameA, nameB, addr, port);
     for(int i = 0; i < maxfd; i++){
         printf("%d--- %s\n", i, user[i].username);
         if(strcmp(user[i].username, nameB) == 0){
-            sprintf(buff, "CHAL %s %s", nameA, nameB);
+            sprintf(buff, "CHAL %s %s %s %s", nameA, nameB, addr, port);
             sendBytes = send(user[i].clientfd, buff, strlen(buff), 0);
             if(sendBytes < 0){
                 perror("Send Challenge Error:");
                 strcpy(log, "RESP\nfail\n"); 
                 break;
             }
+            memset(buff, '\0', 1000*sizeof(char));
             rcvBytes = recv(user[i].clientfd, buff, 1000, 0);
+            printf("Recv: %s", buff);
             if(rcvBytes < 0){
                 perror("Receive Challenge Error:");
                 strcpy(log, "RESP\nfail\n"); 
                 break;
             }
-            strcpy(log, "RESP\nsuccess\n");
+            strcpy(log, buff);
             break;
         }
     }

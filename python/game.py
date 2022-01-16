@@ -54,12 +54,21 @@ class Arena:
                 print(list_user[index-2])
                 print(list_of_buttons)
                 if self.announce.confirmInvitation():
-                    self.communication.request(f'CHAL {self.account} {list_user[index-2]}')
-                for i in range(10):
+                    f = open("../setting.txt")
+                    setting = f.readlines()                    
+                    f.close()
+                    print(setting)
+                    setting[0] = setting[0].replace("\n", "")
+                    print(setting[0])
+                    setting[1] = setting[1].replace("\n", "")
+                    peer = list_user[index-2].replace("\n", "")
+                    self.communication.request(f'CHAL {self.account} {peer} {setting[0]} {setting[1]}')
+                for i in range(30):
                     time.sleep(0.1)
                     status,values=self.communication.checkRespond()
                     if(status==True):
-                        print(values)                    
+                        print(values)  
+                        break                  
                 #  do something
 
 
@@ -76,11 +85,25 @@ class Arena:
             chall,message = self.communication.checkChallenge()
             if chall:
                 k = self.announce.showInvitation(f'co loi moi thach dau tu\n{message[0]}')
-                if k.status ==True:
-                    self.communication.resChallenge('accept')
+                if k == True:
+                    info = message[0].split()
+                    addr = info[2]
+                    port = info[3].replace("\n", "")
+                    f = open("boundary/peer.txt", "w")
+                    f.write("1\n")
+                    f.write(f'{addr} {port}')
+                    f.close()   
+                    f = open("../setting.txt")
+                    setting = f.readlines()                    
+                    f.close()
+                    print(setting)
+                    setting[0] = setting[0].replace("\n", "")
+                    print(setting[0])
+                    setting[1] = setting[1].replace("\n", "")
+                    self.communication.resChallenge(f'RESP\naccept {setting[0]} {setting[1]}')
                     # do some thing
                 else:
-                    self.communication.resChallenge('reject')
+                    self.communication.resChallenge('RESP\nreject x x')
         
             if False:
                 pass
@@ -134,9 +157,9 @@ class Rank:
             if(status==True):
                 myscore = values[1]
                 topGamers = values[2:]
+                mWin = myscore.split()[0]
+                mLoss = myscore.split()[1]
                 break
-            mWin = myscore.split()[0]
-            mLoss = myscore.split()[1]
         list_of_buttons.append(pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 0), (80, 25)), text='tro lai', manager=self.manager))
         pygame_gui.elements.UIButton(relative_rect=pygame.Rect((200, 140), (200, 25)), text=f'win {mWin} loss{mLoss}', manager=self.manager)
         print(topGamers)

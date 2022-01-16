@@ -2,8 +2,8 @@ import sysv_ipc as ipc
 
 class CPythonConnection:
     def __init__(self):
-        f = open('../config_tcp.txt')
-        path = f.readline().split()[0]
+        f = open('../../../setting.txt')
+        path = f.readlines()[2].replace("\n", "")
         self.key = ipc.ftok(path, 2332)
         self.shm = ipc.SharedMemory(self.key, 0, 0)
         self.xb = 0

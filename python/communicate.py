@@ -38,11 +38,13 @@ class Communicate:
             status = True
             values = data[1:]
         f.close()
+        if status == True:
+            f = open('boundary/challenge.txt','w')
+            f.write("0\n")
+            f.close()
         return status, values
     
     def resChallenge(self, mess):
-        f = open('boundary/challenge.txt','w')
-        f.close()
         f = open('boundary/accept.txt','w')
         f.write(mess)
         f.close()
