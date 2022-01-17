@@ -212,6 +212,12 @@ int clientHandler(connfd *user, char *buff, int i, client list, int *size, int m
         strcpy(respond, sendChallenge(user, mess.msg_payload, maxfd));
     }
 
+    if (strcmp(mess.msg_type, "SUBM") == 0)
+    {
+        printf("7\n");
+        strcpy(respond, checkResult(list, *size, mess.msg_payload));
+    }
+
     sendBytes = send((*(user + i)).clientfd, respond, strlen(respond)+1, 0);
 
 }

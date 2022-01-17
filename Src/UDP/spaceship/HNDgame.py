@@ -172,7 +172,6 @@ class HNDgame:
                         blueGamer.ychange = 0
                         
             xr , yr ,nr = self.share.getData()
-            print(f'{xr} , {yr} ,{nr}, {redGamer.nBullet}')   
             redGamer.run(xr , yr ,nr)
             blueGamer.run()
 
@@ -187,6 +186,7 @@ class HNDgame:
                        self.screen.blit(self.winbackground, (0, 0))
                        pygame.display.update()
                        time.sleep(3)
+                       return True
             if redGamer.readly==False:
                if self.distance(redGamer.getPositionBullet(), blueGamer.getPosition()):
                    redGamer.readly = True
@@ -197,10 +197,11 @@ class HNDgame:
                        self.screen.fill((0, 0, 0))
                        self.screen.blit(self.losebackground, (0, 0)) 
                        pygame.display.update()   
-                       time.sleep(3)  
+                       time.sleep(3) 
             self.share.writeData(blueGamer.x, blueGamer.y, blueGamer.nBullet)        
             pygame.display.update()
             clocks.tick(75)
+        return False
 
 
 # pygame.init()

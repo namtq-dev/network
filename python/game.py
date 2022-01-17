@@ -47,23 +47,18 @@ class Arena:
                 for i in range(20):
                     time.sleep(0.1)
                     status,values=self.communication.checkRespond()
-                    print(status, values)
                     if(status==True):
-                        print("da cap nhat")
                         deleteBtn()
                         list_user.clear()
                         list_user += values[1:]
                         setGui()
+                        break
             if index >1:
-                print(list_user[index-2])
-                print(list_of_buttons)
                 if self.announce.confirmInvitation():
                     f = open("../setting.txt")
                     setting = f.readlines()                    
                     f.close()
-                    print(setting)
                     setting[0] = setting[0].replace("\n", "")
-                    print(setting[0])
                     setting[1] = setting[1].replace("\n", "")
                     peer = list_user[index-2].replace("\n", "")
                     self.communication.request(f'CHAL {self.account} {peer} {setting[0]} {setting[1]}')
@@ -94,14 +89,16 @@ class Arena:
                     f = open("../setting.txt")
                     setting = f.readlines()                    
                     f.close()
-                    print(setting)
                     setting[0] = setting[0].replace("\n", "")
-                    print(setting[0])
                     setting[1] = setting[1].replace("\n", "")
                     self.communication.resChallenge(f'RESP\naccept {setting[0]} {setting[1]}')
                     # do some thing
                     game = HNDgame(self.screen)
-                    game.run()
+                    result = game.run()
+                    if(result == True):
+                        self.communication.request(f"SUBM {self.account} win")
+                    else:
+                        self.communication.request(f"SUBM {self.account} lose")
                 else:
                     self.communication.resChallenge('RESP\nreject x x')
             
@@ -116,7 +113,11 @@ class Arena:
                     f.write(f"1\n{addr} {port}")
                     f.close()
                     game = HNDgame(self.screen)
-                    game.run()
+                    result = game.run()
+                    if(result == True):
+                        self.communication.request(f"SUBM {self.account} win")
+                    else:
+                        self.communication.request(f"SUBM {self.account} lose")
 
             if False:
                 pass
@@ -174,15 +175,14 @@ class Rank:
                 mLoss = myscore.split()[1]
                 break
         list_of_buttons.append(pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 0), (80, 25)), text='tro lai', manager=self.manager))
-        pygame_gui.elements.UIButton(relative_rect=pygame.Rect((200, 140), (200, 25)), text=f'win {mWin} loss{mLoss}', manager=self.manager)
-        print(topGamers)
+        pygame_gui.elements.UIButton(relative_rect=pygame.Rect((250, 50), (300, 60)), text=f'Your Score: Win {mWin} Loss {mLoss}', manager=self.manager)
         for i in range(len(topGamers)):
             info = topGamers[i].split()
             usern = info[0]
             win = info[1]
             loss = info[2]
             rank = info[3]
-            pygame_gui.elements.UIButton(relative_rect=pygame.Rect((200, 140+50*i), (200, 40)), text=f'{usern} win {win} loss {loss} rank{rank}', manager=self.manager)
+            pygame_gui.elements.UIButton(relative_rect=pygame.Rect((250, 140+50*i), (300, 40)), text=f'Rank {rank} {usern} Win {win} Loss {loss}', manager=self.manager)
         while running:
             time_delta = clock.tick(60)/1000.0
             for event in pygame.event.get():

@@ -233,7 +233,11 @@ void respond(char *buff)
         printf("Input - Empty file!");
         fclose(fp);
     }
-    fprintf(fp, "%d\n%s", 1, buff);
+    if(strcmp(buff, "0\n") != 0){
+        fprintf(fp, "%d\n%s", 1, buff);
+    } else {
+        fprintf(fp, "%d\n%s", 0, buff);
+    }
     fclose(fp);
 }
 
@@ -394,7 +398,6 @@ void *do_thread3(void *data)
     if (-1 != open(KEYDIR, O_CREAT, 0777))
     {
         key = ftok(KEYDIR, PROJECTID);
-        printf("qwert\n");
     }
     if (key < 0)
         err_exit("ftok error");

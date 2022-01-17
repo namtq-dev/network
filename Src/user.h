@@ -29,6 +29,7 @@ char *getRank();
 void swap();
 void showList();
 char *sendChallenge();
+char *checkResult();
 
 client createNewList(){
     client list;
@@ -248,3 +249,24 @@ char *sendChallenge(connfd *user, char *buff, int maxfd){
     return log;
 }
 
+char* checkResult(client list, int size, char *buff){
+    char username[30];
+    char result[5];
+    char *log = calloc(5000, sizeof(char));
+
+    sscanf(buff, "%s %s", username, result);
+    for(int i = 0; i <size; i++){
+        if(strcmp(list[i].username, username) == 0){
+            if(strcmp(result, "win") == 0){
+                list[i].win += 1;
+            } else {
+                list[i].lose += 1;
+            }
+            break;
+        }
+    }
+
+    updateDB(list, size);
+    strcpy(log, "RESP\n0\n");
+    return log;
+}
